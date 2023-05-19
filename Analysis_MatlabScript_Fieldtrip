@@ -1,0 +1,773 @@
+%% This script puts the data into conditions, performs a decibel baseline and analysises the data
+%This is run on data once it has been fully preprocessed including the ICA data cleaning. So on the rocessed derived data, not the raw data
+clear variables
+restoredefaultpath
+addpath [path to Fieldtrip]; %Example path
+ft_defaults;
+%%
+% Frequency analysis
+%T=0 is when the cue appears
+%trialinfo(:,16) holds the accuracy for the 1st q
+%trialinfo(:,17) holds the accuracy for the 2nd q
+
+%%
+
+load layout_64WG.mat
+ cfg = [];
+  cfg.layout = layout_64WG;
+  layout = ft_prepare_layout(cfg);
+  
+%MyExpdir - Keep   
+expdir = '[File path to processed data location]';
+
+files = dir(expdir);
+files(1:2) = []; %This removes extra lines added to the file directory info
+
+%%
+% here the data is loaded and separated into the conditions 
+nsubj = length(files);
+
+%Stick data Alldata
+%All data regardless of accuracy 
+    freqStickAllDbBL = cell(1, nsubj);
+    freqStickCongAllDbBL = cell(1, nsubj);
+    freqStickIncongAllDbBL = cell(1, nsubj);
+
+%AccQ1
+    AccQ1freqStickAllDbBL = cell(1, nsubj);
+    AccQ1freqStickCongAllDbBL = cell(1, nsubj);
+    AccQ1freqStickIncongAllDbBL = cell(1, nsubj);
+
+
+%Gaze data Alldata
+%All data regardless of accuracy 
+    freqPeopleAllDbBL = cell(1, nsubj);
+    freqPeopleCongAllDbBL = cell(1, nsubj);
+    freqPeopleIncongAllDbBL= cell(1, nsubj);
+
+%AccQ1
+    AccQ1freqPeopleAllDbBL = cell(1, nsubj);
+    AccQ1freqPeopleCongAllDbBL = cell(1, nsubj);
+    AccQ1freqPeopleIncongAllDbBL= cell(1, nsubj);
+
+
+ for subnum = 1:length(files)
+subjdir   = fullfile(expdir, files(subnum).name);
+
+% fullfile(file_eeg.folder, file_eeg.name);
+
+    CurrentDir = strcat(subjdir, '\ProcessedData');
+    out_dir = strcat(subjdir, '\[OutPutFolderName]');
+    if ~exist(out_dir, 'dir')
+        mkdir(out_dir)
+    end
+
+    datafileC = fullfile(CurrentDir, 'data_ica.mat');
+      
+    data_freqShifttoProbe= load(datafileC);
+
+
+%All Acc data Overall Stick          
+%Stick All Stick data 
+            cfg=[];
+            cfg.trials = find( data_freqShifttoProbe.trialinfo(:,6)==1);
+            freqCueShift_StickAll = ft_selectdata(cfg,  data_freqShifttoProbe); 
+%Stick All Stick Cong data 
+            cfg=[];
+            cfg.trials = find( data_freqShifttoProbe.trialinfo(:,1)==1);
+            freq_StickCongAll = ft_selectdata(cfg,  data_freqShifttoProbe);
+%Stick All Stick Incong data 
+            cfg=[];
+            cfg.trials = find( data_freqShifttoProbe.trialinfo(:,1)==2);
+            freq_StickIncongAll = ft_selectdata(cfg,  data_freqShifttoProbe);
+
+%Q1 Acc            
+%Stick All Stick data 
+            cfg=[];
+            cfg.trials = find( freqCueShift_StickAll.trialinfo(:,16)==1);
+            AccQ1freqCueShift_StickAll = ft_selectdata(cfg,  freqCueShift_StickAll); 
+%Stick All Stick Cong data 
+            cfg=[];
+            cfg.trials = find( freq_StickCongAll.trialinfo(:,16)==1);
+            AccQ1freq_StickCongAll = ft_selectdata(cfg, freq_StickCongAll);
+%Stick All Stick Incong data 
+            cfg=[];
+            cfg.trials = find( freq_StickIncongAll.trialinfo(:,16)==1);
+            AccQ1freq_StickIncongAll = ft_selectdata(cfg, freq_StickIncongAll);
+
+%To get Q2 Acc (not used in analysis)            
+%Stick All Stick data 
+            cfg=[];
+            cfg.trials = find( freqCueShift_StickAll.trialinfo(:,17)==1);
+            AccQ2freqCueShift_StickAll = ft_selectdata(cfg,  freqCueShift_StickAll); 
+%Stick All Stick Cong data 
+            cfg=[];
+            cfg.trials = find( freq_StickCongAll.trialinfo(:,17)==1);
+            AccQ2freq_StickCongAll = ft_selectdata(cfg, freq_StickCongAll);
+%Stick All Stick Incong data 
+            cfg=[];
+            cfg.trials = find( freq_StickIncongAll.trialinfo(:,17)==1);
+            AccQ2freq_StickIncongAll = ft_selectdata(cfg, freq_StickIncongAll);            
+%%
+%All Acc data Overall People                
+%People All people data 
+            cfg=[];
+            cfg.trials = find( data_freqShifttoProbe.trialinfo(:,6)==2);
+            freqCueShift_PeopleAll = ft_selectdata(cfg,  data_freqShifttoProbe);
+%People All People Cong data 
+            cfg=[];
+            cfg.trials = find( data_freqShifttoProbe.trialinfo(:,1)==3);
+            freq_PeopleCongAll = ft_selectdata(cfg,  data_freqShifttoProbe);            
+%People All People Incong data 
+            cfg=[];
+            cfg.trials = find( data_freqShifttoProbe.trialinfo(:,1)==4);
+            freq_PeopleIncongAll = ft_selectdata(cfg,  data_freqShifttoProbe);
+            
+%Q1 Acc data Overall People   AccQ1             
+%People All people data 
+            cfg=[];
+            cfg.trials = find( freqCueShift_PeopleAll.trialinfo(:,16)==1);
+            AccQ1freqCueShift_PeopleAll = ft_selectdata(cfg,  freqCueShift_PeopleAll);
+%People All People Cong data 
+            cfg=[];
+            cfg.trials = find( freq_PeopleCongAll.trialinfo(:,16)==1);
+            AccQ1freq_PeopleCongAll = ft_selectdata(cfg,  freq_PeopleCongAll);            
+%People All People Incong data 
+            cfg=[];
+            cfg.trials = find(freq_PeopleIncongAll.trialinfo(:,16)==1);
+            AccQ1freq_PeopleIncongAll = ft_selectdata(cfg, freq_PeopleIncongAll);
+
+%To get Q2 Acc (not used in analysis)            
+%People All people data 
+            cfg=[];
+            cfg.trials = find( freqCueShift_PeopleAll.trialinfo(:,17)==1);
+            AccQ2freqCueShift_PeopleAll = ft_selectdata(cfg,  freqCueShift_PeopleAll);
+%People All People Cong data 
+            cfg=[];
+            cfg.trials = find( freq_PeopleCongAll.trialinfo(:,17)==1);
+            AccQ2freq_PeopleCongAll = ft_selectdata(cfg,  freq_PeopleCongAll);            
+%People All People Incong data 
+            cfg=[];
+            cfg.trials = find(freq_PeopleIncongAll.trialinfo(:,17)==1);
+            AccQ2freq_PeopleIncongAll = ft_selectdata(cfg, freq_PeopleIncongAll);            
+            
+%Freq analysys
+            
+cfg = [];
+cfg.channel    = {'all'}; 
+cfg.method     = 'wavelet';
+cfg.width      = 3; % three cycles per time-window in steps of 50ms  
+cfg.output     = 'pow'; % return the power-spectra
+cfg.pad        = 'nextpow2';
+cfg.foi        = 2:1:30; % meaning  2-30Hz (for every 1Hz)
+cfg.toi        = -0.7:0.05:6.0; %   From inter trial interval to 1.5 second after first probe shown
+
+
+
+
+freqStickAll  = ft_freqanalysis(cfg, freqCueShift_StickAll);
+freqStickCongAll  = ft_freqanalysis(cfg, freq_StickCongAll);
+freqStickIncongAll  = ft_freqanalysis(cfg, freq_StickIncongAll);
+
+AccQ1freqStickAll  = ft_freqanalysis(cfg, AccQ1freqCueShift_StickAll);
+AccQ1freqStickCongAll  = ft_freqanalysis(cfg, AccQ1freq_StickCongAll);
+AccQ1freqStickIncongAll  = ft_freqanalysis(cfg, AccQ1freq_StickIncongAll);
+
+
+%People
+
+freqPeopleAll  = ft_freqanalysis(cfg, freqCueShift_PeopleAll);
+freqPeopleCongAll  = ft_freqanalysis(cfg, freq_PeopleCongAll);
+freqPeopleIncongAll  = ft_freqanalysis(cfg, freq_PeopleIncongAll);
+
+AccQ1freqPeopleAll  = ft_freqanalysis(cfg, AccQ1freqCueShift_PeopleAll);
+AccQ1freqPeopleCongAll  = ft_freqanalysis(cfg, AccQ1freq_PeopleCongAll);
+AccQ1freqPeopleIncongAll  = ft_freqanalysis(cfg, AccQ1freq_PeopleIncongAll);
+
+
+% Baseline correction decibel baseline
+
+cfg = [];
+cfg.baseline     = [-0.5 -0.1];
+cfg.baselinetype = 'db';
+cfg.parameter    = 'powspctrm';
+
+freqStickAllDbBL{subnum} = ft_freqbaseline(cfg,  freqStickAll);
+freqStickCongAllDbBL{subnum} = ft_freqbaseline(cfg, freqStickCongAll);
+freqStickIncongAllDbBL{subnum} = ft_freqbaseline(cfg, freqStickIncongAll);
+
+AccQ1freqStickAllDbBL{subnum} = ft_freqbaseline(cfg,  AccQ1freqStickAll);
+AccQ1freqStickCongAllDbBL{subnum} = ft_freqbaseline(cfg, AccQ1freqStickCongAll);
+AccQ1freqStickIncongAllDbBL{subnum} = ft_freqbaseline(cfg, AccQ1freqStickIncongAll);
+
+%People
+
+freqPeopleAllDbBL{subnum} = ft_freqbaseline(cfg,  freqPeopleAll);
+freqPeopleCongAllDbBL{subnum} = ft_freqbaseline(cfg, freqPeopleCongAll);
+freqPeopleIncongAllDbBL{subnum} = ft_freqbaseline(cfg, freqPeopleIncongAll);
+
+AccQ1freqPeopleAllDbBL{subnum} = ft_freqbaseline(cfg,  AccQ1freqPeopleAll);
+AccQ1freqPeopleCongAllDbBL{subnum} = ft_freqbaseline(cfg, AccQ1freqPeopleCongAll);
+AccQ1freqPeopleIncongAllDbBL{subnum} = ft_freqbaseline(cfg, AccQ1freqPeopleIncongAll);
+
+ end
+ 
+ % compute grandaverage spectra
+cfg         = [];
+cfg.keepindividual = 'yes';
+ % compute grandaverage spectra
+
+gafreqStickAlldb = ft_freqgrandaverage(cfg, freqStickAllDbBL{:});
+gafreqStickCongAlldb = ft_freqgrandaverage(cfg, freqStickCongAllDbBL{:});
+gafreqStickIncongAlldb = ft_freqgrandaverage(cfg, freqStickIncongAllDbBL{:});
+
+AccQ1gafreqStickAlldb = ft_freqgrandaverage(cfg, AccQ1freqStickAllDbBL{:});
+AccQ1gafreqStickCongAlldb = ft_freqgrandaverage(cfg, AccQ1freqStickCongAllDbBL{:});
+AccQ1gafreqStickIncongAlldb = ft_freqgrandaverage(cfg, AccQ1freqStickIncongAllDbBL{:});
+
+%People
+
+gafreqPeopleAlldb = ft_freqgrandaverage(cfg, freqPeopleAllDbBL{:});
+gafreqPeopleCongAlldb = ft_freqgrandaverage(cfg, freqPeopleCongAllDbBL{:});
+gafreqPeopleIncongAlldb = ft_freqgrandaverage(cfg, freqPeopleIncongAllDbBL{:});
+
+AccQ1gafreqPeopleAlldb = ft_freqgrandaverage(cfg, AccQ1freqPeopleAllDbBL{:});
+AccQ1gafreqPeopleCongAlldb = ft_freqgrandaverage(cfg, AccQ1freqPeopleCongAllDbBL{:});
+AccQ1gafreqPeopleIncongAlldb = ft_freqgrandaverage(cfg, AccQ1freqPeopleIncongAllDbBL{:});
+
+
+
+
+%%
+%Stats
+%%
+%Design matrix for dep samples t tests
+nsubj                     = subnum; 
+design2                    = zeros(2,2*nsubj);
+design2(1,1:nsubj)         = 1;
+design2(1,nsubj+1:2*nsubj) = 2;
+design2(2,1:nsubj)         = 1:nsubj;
+design2(2,nsubj+1:2*nsubj) = 1:nsubj;
+
+
+cfg.design   = design2; % design matrix
+cfg.ivar     = 1;      % the 1st and seond row codes the independent variables (laterality x cue)
+cfg.uvar     = 2;      % the 2nd row codes the unit of observation (subject)
+
+%%
+%Gaze stimuli vs stick stimuli Acc Q1 during the eye contact/ cues shift
+%period
+%2.5s-3.5s Alpha
+load neighbours.mat;
+
+cfg                  = [];
+cfg.latency          = [2.5 3.5]; % Item appears at 3.5s
+cfg.channel          = {'all'};
+cfg.frequency        = [8 12];
+cfg.avgoverfreq = 'yes';
+cfg.avgovertime = 'no';
+cfg.avgoverchannel = 'no';
+cfg.method           = 'montecarlo';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.correctm         = 'cluster';
+cfg.clusteralpha     = 0.05;
+cfg.clusterstatistic = 'maxsum';
+cfg.minnbchan        = 2;
+cfg.alpha            = 0.025;
+cfg.numrandomization = 5000;
+cfg_neighb.method    = 'distance';
+cfg.neighbours       = neighbours;
+cfg.statistic        = 'ft_statfun_depsamplesT';
+cfg.design           = design2;
+cfg.ivar             = 1;
+cfg.uvar             = 2;
+
+ShiftAccQ1AlphaStatfreqGazeStickAlldb = ft_freqstatistics(cfg, AccQ1gafreqPeopleAlldb, AccQ1gafreqStickAlldb);
+
+cfg = [];
+cfg.alpha  = 0.05;
+cfg.parameter = 'stat';
+cfg.zlim   = [-4 4];
+cfg.layout = layout;
+ft_clusterplot(cfg, ShiftAccQ1AlphaStatfreqGazeStickAlldb);
+cfg.highlightcolorpos       =  [1 1 1];
+cfg.highlightcolorneg       =  [1 1 1];
+colormap(brewermap(201, '*RdBu'))
+
+%%
+%Gaze stimuli vs stick stimuli Acc Q1 during eye contact/ cue shift
+%2.5s-3.5s Theta
+load neighbours.mat;
+
+cfg                  = [];
+cfg.latency          = [2.5 3.5]; % Item appears at 3.5s
+cfg.channel          = {'all'};
+cfg.frequency        = [3 7];
+cfg.avgoverfreq = 'yes';
+cfg.avgovertime = 'no';
+cfg.avgoverchannel = 'no';
+cfg.method           = 'montecarlo';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.correctm         = 'cluster';
+cfg.clusteralpha     = 0.05;
+cfg.clusterstatistic = 'maxsum';
+cfg.minnbchan        = 2;
+cfg.alpha            = 0.025;
+cfg.numrandomization = 5000;
+cfg_neighb.method    = 'distance';
+cfg.neighbours       = neighbours;
+cfg.statistic        = 'ft_statfun_depsamplesT';
+cfg.design           = design2;
+cfg.ivar             = 1;
+cfg.uvar             = 2;
+
+ShiftAccQ1ThetaStatfreqGazeStickAlldb = ft_freqstatistics(cfg, AccQ1gafreqPeopleAlldb, AccQ1gafreqStickAlldb);
+
+cfg = [];
+cfg.alpha  = 0.05;
+cfg.parameter = 'stat';
+cfg.zlim   = [-4 4];
+cfg.layout = layout;
+ft_clusterplot(cfg, ShiftAccQ1ThetaStatfreqGazeStickAlldb);
+colormap(brewermap(201, '*RdBu'))
+
+%% Alpha encoding 
+
+%%
+%Gaze stimuli Acc Q1 Encoding Alpha
+load neighbours.mat;
+
+cfg                  = [];
+cfg.latency          = [3.5 4.0]; % Item appears at 4s
+cfg.channel          = {'all'};
+cfg.frequency        = [8 12];
+cfg.avgoverfreq = 'yes';
+cfg.avgovertime = 'no';
+cfg.avgoverchannel = 'no';
+cfg.method           = 'montecarlo';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.correctm         = 'cluster';
+cfg.clusteralpha     = 0.05;
+cfg.clusterstatistic = 'maxsum';
+cfg.minnbchan        = 2;
+cfg.alpha            = 0.025;
+cfg.numrandomization = 5000;
+cfg_neighb.method    = 'distance';
+cfg.neighbours       = neighbours;
+cfg.statistic        = 'ft_statfun_depsamplesT';
+cfg.design           = design2;
+cfg.ivar             = 1;
+cfg.uvar             = 2;
+
+AccQ1statfreqGazeCIAlldb = ft_freqstatistics(cfg, AccQ1gafreqPeopleCongAlldb, AccQ1gafreqPeopleIncongAlldb);
+
+cfg = [];
+cfg.alpha  = 0.05;
+cfg.parameter = 'stat';
+cfg.zlim   = [-4 4];
+cfg.layout = layout;
+ft_clusterplot(cfg, AccQ1statfreqGazeCIAlldb);
+colormap(brewermap(201, '*RdBu'))
+
+
+%%
+
+%%
+%Stick stimuli Acc Q1 Encoding Alpha
+load neighbours.mat;
+
+cfg                  = [];
+cfg.latency          = [3.5 4.0]; % Item appears at 4s
+cfg.channel          = {'all'};
+cfg.frequency        = [8 12];
+cfg.avgoverfreq = 'yes';
+cfg.avgovertime = 'no';
+cfg.avgoverchannel = 'no';
+cfg.method           = 'montecarlo';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.correctm         = 'cluster';
+cfg.clusteralpha     = 0.05;
+cfg.clusterstatistic = 'maxsum';
+cfg.minnbchan        = 2;
+cfg.alpha            = 0.025;
+cfg.numrandomization = 5000;
+cfg_neighb.method    = 'distance';
+cfg.neighbours       = neighbours;
+cfg.statistic        = 'ft_statfun_depsamplesT';
+cfg.design           = design2;
+cfg.ivar             = 1;
+cfg.uvar             = 2;
+
+AccQ1AlphastatfreqStickCIAlldb = ft_freqstatistics(cfg, AccQ1gafreqStickCongAlldb, AccQ1gafreqStickIncongAlldb);
+
+cfg = [];
+cfg.alpha  = 0.05;
+cfg.parameter = 'stat';
+cfg.zlim   = [-4 4];
+cfg.layout = layout;
+ft_clusterplot(cfg, AccQ1AlphastatfreqStickCIAlldb);
+colormap(brewermap(201, '*RdBu'))
+
+
+%%
+% Gaze vs Stick AccQ1
+
+%first need to create single gaze ans single stick variables
+
+%Cong - Incong gaze
+%%
+
+cfg           = [];
+cfg.operation = 'subtract';
+cfg.parameter = 'powspctrm';
+GazeCtakeIdb = ft_math(cfg, AccQ1gafreqPeopleCongAlldb, AccQ1gafreqPeopleIncongAlldb);
+ 
+
+cfg           = [];
+cfg.operation = 'subtract';
+cfg.parameter = 'powspctrm';
+StickCtakeIdb = ft_math(cfg, AccQ1gafreqStickCongAlldb, AccQ1gafreqStickIncongAlldb);
+
+
+cfg           = [];
+cfg.operation = 'subtract';
+cfg.parameter = 'powspctrm';
+GazetakeStick= ft_math(cfg, AccQ1gafreqPeopleAlldb, AccQ1gafreqStickAlldb);
+%%
+
+%Stats on gaze vs stick during encoding alpha
+
+load neighbours.mat;
+
+cfg                  = [];
+cfg.latency          = [3.5 4.0]; % Item appears at 4s
+cfg.channel          = {'all'};
+cfg.frequency        = [8 12];
+cfg.avgoverfreq = 'yes';
+cfg.avgovertime = 'no';
+cfg.avgoverchannel = 'no';
+cfg.method           = 'montecarlo';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.correctm         = 'cluster';
+cfg.clusteralpha     = 0.05;
+cfg.clusterstatistic = 'maxsum';
+cfg.minnbchan        = 2;
+cfg.alpha            = 0.025;
+cfg.numrandomization = 5000;
+cfg_neighb.method    = 'distance';
+cfg.neighbours       = neighbours;
+cfg.statistic        = 'ft_statfun_depsamplesT';
+cfg.design           = design2;
+cfg.ivar             = 1;
+cfg.uvar             = 2;
+
+statfreqGazeVsStickCIAlldb = ft_freqstatistics(cfg, GazeCtakeIdb, StickCtakeIdb);
+
+cfg = [];
+cfg.alpha  = 0.05;
+cfg.parameter = 'stat';
+cfg.zlim   = [-4 4];
+cfg.layout = layout;
+ft_clusterplot(cfg, statfreqGazeVsStickCIAlldb);
+colormap('whitejet')
+
+%%
+%% Alpha probe retrieval interval probe at 5ms
+
+%% Alpha Cong vs Incong All - left and right cue and location together
+%%
+
+%Gaze stimuli Acc Q1
+load neighbours.mat;
+
+cfg                  = [];
+cfg.latency          = [5 6];
+cfg.channel          = {'all'};
+cfg.frequency        = [8 12];
+cfg.avgoverfreq = 'yes';
+cfg.avgovertime = 'no';
+cfg.avgoverchannel = 'no';
+cfg.method           = 'montecarlo';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.correctm         = 'cluster';
+cfg.clusteralpha     = 0.05;
+cfg.clusterstatistic = 'maxsum';
+cfg.minnbchan        = 2;
+cfg.alpha            = 0.025;
+cfg.numrandomization = 5000;
+cfg_neighb.method    = 'distance';
+cfg.neighbours       = neighbours;
+cfg.statistic        = 'ft_statfun_depsamplesT';
+cfg.design           = design2;
+cfg.ivar             = 1;
+cfg.uvar             = 2;
+
+AlphaProbeAccQ1statfreqGazeCIAlldb = ft_freqstatistics(cfg, AccQ1gafreqPeopleCongAlldb, AccQ1gafreqPeopleIncongAlldb);
+
+cfg = [];
+cfg.alpha  = 0.05;
+cfg.parameter = 'stat';
+cfg.zlim   = [-4 4];
+cfg.layout = layout;
+ft_clusterplot(cfg, AlphaProbeAccQ1statfreqGazeCIAlldb);
+
+
+%%
+%Stick AccQ1 Probe
+
+%%
+%Stick stimuli AccQ1
+load neighbours.mat;
+
+cfg                  = [];
+cfg.latency          = [5 6]; 
+cfg.channel          = {'all'};
+cfg.frequency        = [8 12];
+cfg.avgoverfreq = 'yes';
+cfg.avgovertime = 'no';
+cfg.avgoverchannel = 'no';
+cfg.method           = 'montecarlo';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.correctm         = 'cluster';
+cfg.clusteralpha     = 0.05;
+cfg.clusterstatistic = 'maxsum';
+cfg.minnbchan        = 2;
+cfg.alpha            = 0.025;
+cfg.numrandomization = 5000;
+cfg_neighb.method    = 'distance';
+cfg.neighbours       = neighbours;
+cfg.statistic        = 'ft_statfun_depsamplesT';
+cfg.design           = design2;
+cfg.ivar             = 1;
+cfg.uvar             = 2;
+
+AlphaProbeAccQ1statfreqStickCIAlldb = ft_freqstatistics(cfg, AccQ1gafreqStickCongAlldb, AccQ1gafreqStickIncongAlldb);
+
+cfg = [];
+cfg.alpha  = 0.05;
+cfg.parameter = 'stat';
+cfg.zlim   = [-4 4];
+cfg.layout = layout;
+ft_clusterplot(cfg, AlphaProbeAccQ1statfreqStickCIAlldb);
+
+
+
+%% Theta encoding 
+%%
+%Gaze stimuli Acc Q1
+load neighbours.mat;
+
+cfg                  = [];
+cfg.latency          = [3.5 4]; % Item appears at 3.5s
+cfg.channel          = {'all'};
+cfg.frequency        = [3 7];
+cfg.avgoverfreq = 'yes';
+cfg.avgovertime = 'no';
+cfg.avgoverchannel = 'no';
+cfg.method           = 'montecarlo';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.correctm         = 'cluster';
+cfg.clusteralpha     = 0.05;
+cfg.clusterstatistic = 'maxsum';
+cfg.minnbchan        = 2;
+cfg.alpha            = 0.025;
+cfg.numrandomization = 5000;
+cfg_neighb.method    = 'distance';
+cfg.neighbours       = neighbours;
+cfg.statistic        = 'ft_statfun_depsamplesT';
+cfg.design           = design2;
+cfg.ivar             = 1;
+cfg.uvar             = 2;
+
+AccQ1ThetaStatfreqGazeCIAlldb = ft_freqstatistics(cfg, AccQ1gafreqPeopleCongAlldb, AccQ1gafreqPeopleIncongAlldb);
+
+cfg = [];
+cfg.alpha  = 0.05;
+cfg.parameter = 'stat';
+cfg.zlim   = [-4 4];
+cfg.layout = layout;
+ft_clusterplot(cfg, AccQ1ThetaStatfreqGazeCIAlldb);
+colormap(brewermap(201, '*RdBu'))
+
+
+
+%%
+%Stick stimuli Acc Q1
+load neighbours.mat;
+
+cfg                  = [];
+cfg.latency          = [3.5 4.0]; % Item appears at 4s
+cfg.channel          = {'all'};
+cfg.frequency        = [3 7];
+cfg.avgoverfreq = 'yes';
+cfg.avgovertime = 'no';
+cfg.avgoverchannel = 'no';
+cfg.method           = 'montecarlo';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.correctm         = 'cluster';
+cfg.clusteralpha     = 0.05;
+cfg.clusterstatistic = 'maxsum';
+cfg.minnbchan        = 2;
+cfg.alpha            = 0.025;
+cfg.numrandomization = 5000;
+cfg_neighb.method    = 'distance';
+cfg.neighbours       = neighbours;
+cfg.statistic        = 'ft_statfun_depsamplesT';
+cfg.design           = design2;
+cfg.ivar             = 1;
+cfg.uvar             = 2;
+
+AccQ1ThetaStatfreqStickCIAlldb = ft_freqstatistics(cfg, AccQ1gafreqStickCongAlldb, AccQ1gafreqStickIncongAlldb);
+
+cfg = [];
+cfg.alpha  = 0.05;
+cfg.parameter = 'stat';
+cfg.zlim   = [-4 4];
+cfg.layout = layout;
+ft_clusterplot(cfg, AccQ1ThetaStatfreqStickCIAlldb);
+colormap(brewermap(201, '*RdBu'))
+
+%%
+%Gaze vs Stick Theta AccQ1 - all channells
+load neighbours.mat;
+
+cfg                  = [];
+cfg.latency          = [3.5 4]; % Item appears at 3.5
+cfg.channel          = {'all'};
+cfg.frequency        = [3 7];
+cfg.avgoverfreq = 'yes';
+cfg.avgovertime = 'no';
+cfg.avgoverchannel = 'no';
+cfg.method           = 'montecarlo';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.correctm         = 'cluster';
+cfg.clusteralpha     = 0.05;
+cfg.clusterstatistic = 'maxsum';
+cfg.minnbchan        = 2;
+cfg.alpha            = 0.025;
+cfg.numrandomization = 5000;
+cfg_neighb.method    = 'distance';
+cfg.neighbours       = neighbours;
+cfg.statistic        = 'ft_statfun_depsamplesT';
+cfg.design           = design2;
+cfg.ivar             = 1;
+cfg.uvar             = 2;
+
+ThetastatfreqGazeVsStickCIAlldbAllChan = ft_freqstatistics(cfg, GazeCtakeIdb, StickCtakeIdb);
+
+cfg = [];
+cfg.alpha  = 0.05;
+cfg.parameter = 'stat';
+cfg.zlim   = [-4 4];
+cfg.layout = layout;
+ft_clusterplot(cfg, ThetastatfreqGazeVsStickCIAlldbAllChan);
+colormap(brewermap(201, '*RdBu'))
+
+
+
+%%
+%Gaze vs Stick Theta AccQ1 - occipital channels
+load neighbours.mat;
+
+cfg                  = [];
+cfg.latency          = [3.5 4];
+cfg.channel          = {'P7' 'P5' 'P3' 'P1' 'Pz' 'P2' 'P4' 'P6' 'P8' 'PO7' 'PO5' 'PO3' 'POz' 'PO4' 'PO6' 'PO8' 'O1' 'Oz' 'O2'};
+cfg.frequency        = [3 7];
+cfg.avgoverfreq = 'yes';
+cfg.avgovertime = 'no';
+cfg.avgoverchannel = 'no';
+cfg.method           = 'montecarlo';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.correctm         = 'cluster';
+cfg.clusteralpha     = 0.05;
+cfg.clusterstatistic = 'maxsum';
+cfg.minnbchan        = 2;
+cfg.alpha            = 0.025;
+cfg.numrandomization = 5000;
+cfg_neighb.method    = 'distance';
+cfg.neighbours       = neighbours;
+cfg.statistic        = 'ft_statfun_depsamplesT';
+cfg.design           = design2;
+cfg.ivar             = 1;
+cfg.uvar             = 2;
+
+ThetastatfreqGazeVsStickCIAlldbOcc = ft_freqstatistics(cfg, GazeCtakeIdb, StickCtakeIdb);
+
+cfg = [];
+cfg.alpha  = 0.05;
+cfg.parameter = 'stat';
+cfg.zlim   = [-4 4];
+cfg.layout = layout;
+ft_clusterplot(cfg, ThetastatfreqGazeVsStickCIAlldbOcc);
+colormap(brewermap(201, '*RdBu'))
+
+%% Theta Cong vs Incong All - left and right cue and location together Probe
+%%
+%Gaze stimuli Acc Q1
+load neighbours.mat;
+
+cfg                  = [];
+cfg.latency          = [5 6]; 
+cfg.channel          = {'all'};
+cfg.frequency        = [3 7];
+cfg.avgoverfreq = 'yes';
+cfg.avgovertime = 'no';
+cfg.avgoverchannel = 'no';
+cfg.method           = 'montecarlo';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.correctm         = 'cluster';
+cfg.clusteralpha     = 0.05;
+cfg.clusterstatistic = 'maxsum';
+cfg.minnbchan        = 2;
+cfg.alpha            = 0.025;
+cfg.numrandomization = 5000;
+cfg_neighb.method    = 'distance';
+cfg.neighbours       = neighbours;
+cfg.statistic        = 'ft_statfun_depsamplesT';
+cfg.design           = design2;
+cfg.ivar             = 1;
+cfg.uvar             = 2;
+
+ProbeAccQ1ThetaStatfreqGazeCIAlldb = ft_freqstatistics(cfg, AccQ1gafreqPeopleCongAlldb, AccQ1gafreqPeopleIncongAlldb);
+
+cfg = [];
+cfg.alpha  = 0.05;
+cfg.parameter = 'stat';
+cfg.zlim   = [-4 4];
+cfg.layout = layout;
+ft_clusterplot(cfg, ProbeAccQ1ThetaStatfreqGazeCIAlldb);
+
+%%
+%Stick stimuli Acc Q1
+load neighbours.mat;
+
+cfg                  = [];
+cfg.latency          = [5 6]; % Item appears at 4s
+cfg.channel          = {'all'};
+cfg.frequency        = [3 7];
+cfg.avgoverfreq = 'yes';
+cfg.avgovertime = 'no';
+cfg.avgoverchannel = 'no';
+cfg.method           = 'montecarlo';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.correctm         = 'cluster';
+cfg.clusteralpha     = 0.05;
+cfg.clusterstatistic = 'maxsum';
+cfg.minnbchan        = 2;
+cfg.alpha            = 0.025;
+cfg.numrandomization = 5000;
+cfg_neighb.method    = 'distance';
+cfg.neighbours       = neighbours;
+cfg.statistic        = 'ft_statfun_depsamplesT';
+cfg.design           = design2;
+cfg.ivar             = 1;
+cfg.uvar             = 2;
+
+ProbeThetaAccQ1ThetaStatfreqStickCIAlldb = ft_freqstatistics(cfg, AccQ1gafreqStickCongAlldb, AccQ1gafreqStickIncongAlldb);
+
+cfg = [];
+cfg.alpha  = 0.05;
+cfg.parameter = 'stat';
+cfg.zlim   = [-4 4];
+cfg.layout = layout;
+ft_clusterplot(cfg, ProbeThetaAccQ1ThetaStatfreqStickCIAlldb);
