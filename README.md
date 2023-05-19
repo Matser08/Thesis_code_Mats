@@ -16,8 +16,9 @@ without feature extraction, are:
 The files that are used for method 2, where we use machine learning algorithms (Random forest classification and logistic regression) on the data 
 with feature extraction, are:
 
-	step 1 - WorkingCode_Morlet_Wavelet_Transform_and_Baseline, code for applying the morlet wavelet frequency in Fieldtrip, 
-	which is adapted from code provided in the dataset that is the basis of my thesis (Gregory et al., 2021). The original code of 
+	step 1 - WorkingCode_Morlet_Wavelet_Transform_and_Baseline, code for applying the morlet 
+	wavelet frequency in Fieldtrip, which is adapted from code provided in the dataset 
+	that is the basis of my thesis (Gregory et al., 2021). The original code
 	from the database has been added as Analysis_MatlabScript_Fieldtrip. 
 
 	Step 2 - Code_applying_wavelet_transform
